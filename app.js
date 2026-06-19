@@ -1,208 +1,456 @@
 // ============================================================
-// FIFA World Cup 2026 — Bracket Path Builder — DATA FILE
-// Last live standings update: June 17, 2026
+// BRACKET PATH 26 — App logic
 // ============================================================
 
-// Each group: 4 teams in CURRENT live order (pos 1 = top of table right now)
-// flag = ISO country code (lowercase) used by flagcdn.com
-const GROUPS = {
-  1: {
-    name: "Group 1",
-    teams: [
-      { name: "Mexico", flag: "mx" },
-      { name: "South Korea", flag: "kr" },
-      { name: "Czechia", flag: "cz" },
-      { name: "South Africa", flag: "za" },
-    ],
-  },
-  2: {
-    name: "Group 2",
-    teams: [
-      { name: "Qatar", flag: "qa" },
-      { name: "Bosnia & Herzegovina", flag: "ba" },
-      { name: "Switzerland", flag: "ch" },
-      { name: "Canada", flag: "ca" },
-    ],
-  },
-  3: {
-    name: "Group 3",
-    teams: [
-      { name: "Scotland", flag: "gb-sct" },
-      { name: "Morocco", flag: "ma" },
-      { name: "Brazil", flag: "br" },
-      { name: "Haiti", flag: "ht" },
-    ],
-  },
-  4: {
-    name: "Group 4",
-    teams: [
-      { name: "USA", flag: "us" },
-      { name: "Australia", flag: "au" },
-      { name: "Turkey", flag: "tr" },
-      { name: "Paraguay", flag: "py" },
-    ],
-  },
-  5: {
-    name: "Group 5",
-    teams: [
-      { name: "Germany", flag: "de" },
-      { name: "Ivory Coast", flag: "ci" },
-      { name: "Ecuador", flag: "ec" },
-      { name: "Curaçao", flag: "cw" },
-    ],
-  },
-  6: {
-    name: "Group 6",
-    teams: [
-      { name: "Sweden", flag: "se" },
-      { name: "Japan", flag: "jp" },
-      { name: "Netherlands", flag: "nl" },
-      { name: "Tunisia", flag: "tn" },
-    ],
-  },
-  7: {
-    name: "Group 7",
-    teams: [
-      { name: "Egypt", flag: "eg" },
-      { name: "Belgium", flag: "be" },
-      { name: "Iran", flag: "ir" },
-      { name: "New Zealand", flag: "nz" },
-    ],
-  },
-  8: {
-    name: "Group 8",
-    teams: [
-      { name: "Saudi Arabia", flag: "sa" },
-      { name: "Uruguay", flag: "uy" },
-      { name: "Cape Verde", flag: "cv" },
-      { name: "Spain", flag: "es" },
-    ],
-  },
-  9: {
-    name: "Group 9",
-    teams: [
-      { name: "Norway", flag: "no" },
-      { name: "France", flag: "fr" },
-      { name: "Senegal", flag: "sn" },
-      { name: "Iraq", flag: "iq" },
-    ],
-  },
-  10: {
-    name: "Group 10",
-    teams: [
-      { name: "Argentina", flag: "ar" },
-      { name: "Austria", flag: "at" },
-      { name: "Jordan", flag: "jo" },
-      { name: "Algeria", flag: "dz" },
-    ],
-  },
-  11: {
-    name: "Group 11",
-    teams: [
-      { name: "DR Congo", flag: "cd" },
-      { name: "Uzbekistan", flag: "uz" },
-      { name: "Portugal", flag: "pt" },
-      { name: "Colombia", flag: "co" },
-    ],
-  },
-  12: {
-    name: "Group 12",
-    teams: [
-      { name: "Ghana", flag: "gh" },
-      { name: "England", flag: "gb-eng" },
-      { name: "Panama", flag: "pa" },
-      { name: "Croatia", flag: "hr" },
-    ],
-  },
-};
+const D = window.WC26_DATA;
 
-// ============================================================
-// THIRD-PLACE QUALIFICATION POOLS
-// Each Round-of-32 slot that needs a "3rd place" team specifies
-// WHICH group numbers are eligible to fill it (per official FIFA bracket).
-// The user picks, for each 3rd-place team, whether it qualifies (best 8) or is eliminated.
-// ============================================================
-const THIRD_PLACE_POOLS = {
-  74: [1, 2, 3, 4, 6],
-  77: [3, 4, 6, 7, 8],
-  79: [3, 5, 6, 8, 9],
-  80: [5, 8, 9, 10, 11],
-  81: [2, 5, 6, 9, 10],
-  82: [1, 5, 8, 9, 10],
-  85: [5, 6, 7, 9, 10],
-  87: [4, 5, 9, 10, 12],
-};
+// state[groupNum] = { order: [team0, team1, team2, team3] (in current pos order), thirdStatus: "qualified"|"out"|null }
+const state = {};
+for (const g in D.GROUPS) {
+  state[g] = {
+    order: D.GROUPS[g].teams.map((t) => ({ ...t })),
+    thirdStatus: null,
+  };
+}
 
-// ============================================================
-// ROUND OF 32 — exact official bracket (from FIFA schedule)
-// home/away use codes resolved at render time:
-//   "1st-N"  = winner (1st place) of group N
-//   "2nd-N"  = runner-up (2nd place) of group N
-//   "3rd-{74}" etc = whichever team the user assigned to that 3rd-place slot
-// ============================================================
-const ROUND_OF_32 = [
-  { id: 73, date: "Sun 28 Jun", venue: "Los Angeles", home: "2nd-1", away: "2nd-2" },
-  { id: 74, date: "Mon 29 Jun", venue: "Boston", home: "1st-5", away: "3rd-74" },
-  { id: 75, date: "Mon 29 Jun", venue: "Monterrey", home: "1st-6", away: "2nd-3" },
-  { id: 76, date: "Mon 29 Jun", venue: "Houston", home: "1st-3", away: "2nd-6" },
-  { id: 77, date: "Tue 30 Jun", venue: "New York/NJ", home: "1st-9", away: "3rd-77" },
-  { id: 78, date: "Tue 30 Jun", venue: "Dallas", home: "2nd-5", away: "2nd-9" },
-  { id: 79, date: "Tue 30 Jun", venue: "Mexico City", home: "1st-1", away: "3rd-79" },
-  { id: 80, date: "Wed 1 Jul", venue: "Atlanta", home: "1st-12", away: "3rd-80" },
-  { id: 81, date: "Wed 1 Jul", venue: "San Francisco Bay Area", home: "1st-4", away: "3rd-81" },
-  { id: 82, date: "Wed 1 Jul", venue: "Seattle", home: "1st-7", away: "3rd-82" },
-  { id: 83, date: "Thu 2 Jul", venue: "Toronto", home: "2nd-11", away: "2nd-12" },
-  { id: 84, date: "Thu 2 Jul", venue: "Los Angeles", home: "1st-8", away: "2nd-10" },
-  { id: 85, date: "Thu 2 Jul", venue: "Vancouver", home: "1st-2", away: "3rd-85" },
-  { id: 86, date: "Fri 3 Jul", venue: "Miami", home: "1st-10", away: "2nd-8" },
-  { id: 87, date: "Fri 3 Jul", venue: "Kansas City", home: "1st-11", away: "3rd-87" },
-  { id: 88, date: "Fri 3 Jul", venue: "Dallas", home: "2nd-4", away: "2nd-7" },
-];
+let dragSrcGroup = null;
+let dragSrcIndex = null;
 
-// ============================================================
-// ROUND OF 16 — winners of specific Round-of-32 match numbers
-// ============================================================
-const ROUND_OF_16 = [
-  { id: 89, date: "Sat 4 Jul", venue: "Philadelphia", home: "W74", away: "W77" },
-  { id: 90, date: "Sat 4 Jul", venue: "Houston", home: "W73", away: "W75" },
-  { id: 91, date: "Sun 5 Jul", venue: "New York/NJ", home: "W76", away: "W78" },
-  { id: 92, date: "Sun 5 Jul", venue: "Mexico City", home: "W79", away: "W80" },
-  { id: 93, date: "Mon 6 Jul", venue: "Dallas", home: "W83", away: "W84" },
-  { id: 94, date: "Mon 6 Jul", venue: "Seattle", home: "W81", away: "W82" },
-  { id: 95, date: "Tue 7 Jul", venue: "Atlanta", home: "W86", away: "W88" },
-  { id: 96, date: "Tue 7 Jul", venue: "Vancouver", home: "W85", away: "W87" },
-];
+// Touch-drag state (separate from HTML5 drag API, which doesn't fire on mobile)
+let touchState = null; // { group, fromIndex, rowEl, startY, currentY, placeholder, rowHeight }
 
-// ============================================================
-// QUARTER-FINALS
-// ============================================================
-const QUARTERFINALS = [
-  { id: 97, date: "Thu 9 Jul", venue: "Boston", home: "W89", away: "W90" },
-  { id: 98, date: "Fri 10 Jul", venue: "Los Angeles", home: "W93", away: "W94" },
-  { id: 99, date: "Sat 11 Jul", venue: "Miami", home: "W91", away: "W92" },
-  { id: 100, date: "Sat 11 Jul", venue: "Kansas City", home: "W95", away: "W96" },
-];
+// ---------- RENDER GROUPS ----------
+function flagUrl(code) {
+  return `https://flagcdn.com/h40/${code}.png`;
+}
 
-// ============================================================
-// SEMI-FINALS
-// ============================================================
-const SEMIFINALS = [
-  { id: 101, date: "Tue 14 Jul", venue: "Dallas", home: "W97", away: "W98" },
-  { id: 102, date: "Wed 15 Jul", venue: "Atlanta", home: "W99", away: "W100" },
-];
+function reorderGroup(gNum, fromIndex, toIndex) {
+  if (fromIndex === toIndex) return;
+  const arr = state[gNum].order;
+  const [moved] = arr.splice(fromIndex, 1);
+  arr.splice(toIndex, 0, moved);
+  renderGroups();
+}
 
-// FINAL (id 104 — match 103 is the third place playoff, often skipped in bracket tools)
-const THIRD_PLACE_PLAYOFF = { id: 103, date: "Sat 18 Jul", venue: "Miami", home: "L101", away: "L102" };
-const FINAL = { id: 104, date: "Sun 19 Jul", venue: "New York/NJ", home: "W101", away: "W102" };
+function renderGroups() {
+  const grid = document.getElementById("groupsGrid");
+  grid.innerHTML = "";
 
-// Export everything as one object for use in app.js
-window.WC26_DATA = {
-  GROUPS,
-  THIRD_PLACE_POOLS,
-  ROUND_OF_32,
-  ROUND_OF_16,
-  QUARTERFINALS,
-  SEMIFINALS,
-  THIRD_PLACE_PLAYOFF,
-  FINAL,
-};
+  for (const gNum in D.GROUPS) {
+    const card = document.createElement("div");
+    card.className = "group-card";
+    card.innerHTML = `<div class="group-card-head">${D.GROUPS[gNum].name}</div>`;
+
+    const list = document.createElement("div");
+    list.className = "team-list";
+    list.dataset.group = gNum;
+
+    state[gNum].order.forEach((team, idx) => {
+      const row = document.createElement("div");
+      row.className = "team-row";
+      row.draggable = true; // desktop: native HTML5 drag
+      row.dataset.pos = idx;
+      row.dataset.group = gNum;
+      row.dataset.index = idx;
+
+      const posLabel = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : "4th";
+
+      row.innerHTML = `
+        <span class="pos-badge">${posLabel}</span>
+        <img class="team-flag" src="${flagUrl(team.flag)}" alt="${team.name} flag" onerror="this.style.display='none'">
+        <span class="team-name">${team.name}</span>
+        <span class="drag-handle">⠿</span>
+      `;
+
+      // ---- Desktop mouse drag (HTML5 native) ----
+      row.addEventListener("dragstart", () => {
+        dragSrcGroup = gNum;
+        dragSrcIndex = idx;
+        row.classList.add("dragging");
+      });
+      row.addEventListener("dragend", () => row.classList.remove("dragging"));
+      row.addEventListener("dragover", (e) => e.preventDefault());
+      row.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (dragSrcGroup === gNum) {
+          reorderGroup(gNum, dragSrcIndex, idx);
+        }
+      });
+
+      // ---- Mobile touch drag (manual, via the drag-handle) ----
+      const handle = row.querySelector(".drag-handle");
+      handle.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          touchState = {
+            group: gNum,
+            fromIndex: idx,
+            currentIndex: idx,
+            rowEl: row,
+            startY: touch.clientY,
+            rowHeight: row.offsetHeight + 6, // includes margin-bottom
+            listEl: list,
+          };
+          row.classList.add("dragging");
+          row.style.position = "relative";
+          row.style.zIndex = "10";
+        },
+        { passive: false }
+      );
+
+      list.appendChild(row);
+    });
+
+    card.appendChild(list);
+
+    // Third place toggle — only show if this group's 3rd place is in ANY eligible pool
+    const isEligible = Object.values(D.THIRD_PLACE_POOLS).some((pool) => pool.includes(Number(gNum)));
+    if (isEligible) {
+      const toggle = document.createElement("div");
+      toggle.className = "third-place-toggle";
+      const qBtn = document.createElement("button");
+      qBtn.className = "tp-btn" + (state[gNum].thirdStatus === "qualified" ? " active-q" : "");
+      qBtn.textContent = "3rd Qualifies";
+      qBtn.onclick = () => {
+        state[gNum].thirdStatus = state[gNum].thirdStatus === "qualified" ? null : "qualified";
+        renderGroups();
+      };
+      const outBtn = document.createElement("button");
+      outBtn.className = "tp-btn" + (state[gNum].thirdStatus === "out" ? " active-out" : "");
+      outBtn.textContent = "3rd Eliminated";
+      outBtn.onclick = () => {
+        state[gNum].thirdStatus = state[gNum].thirdStatus === "out" ? null : "out";
+        renderGroups();
+      };
+      toggle.appendChild(qBtn);
+      toggle.appendChild(outBtn);
+      card.appendChild(toggle);
+    }
+
+    grid.appendChild(card);
+  }
+
+  updateThirdPlaceBanner();
+}
+
+function updateThirdPlaceBanner() {
+  const qualifiedCount = Object.values(state).filter((s) => s.thirdStatus === "qualified").length;
+  document.getElementById("tpbCount").textContent = `${qualifiedCount} of 8 marked as qualified`;
+
+  const buildBtn = document.getElementById("buildBracketBtn");
+  buildBtn.disabled = qualifiedCount !== 8;
+}
+
+// ---------- RESOLVE GROUP-STAGE SLOT CODES INTO TEAM OBJECTS ----------
+// (only resolves "1st-N" / "2nd-N" / "3rd-{matchId}" — i.e. Round of 32 inputs)
+function resolveGroupSlot(code, usedThirdPlaceTracker) {
+  let m = code.match(/^1st-(\d+)$/);
+  if (m) return state[m[1]].order[0];
+  m = code.match(/^2nd-(\d+)$/);
+  if (m) return state[m[1]].order[1];
+
+  m = code.match(/^3rd-(\d+)$/);
+  if (m) {
+    const matchId = Number(m[1]);
+    const pool = D.THIRD_PLACE_POOLS[matchId];
+    const qualifiedInPool = pool.filter((g) => state[g].thirdStatus === "qualified");
+    const available = qualifiedInPool.filter((g) => !usedThirdPlaceTracker.has(g));
+    if (available.length === 0) return null;
+    const chosenGroup = available[0];
+    usedThirdPlaceTracker.add(chosenGroup);
+    return { ...state[chosenGroup].order[2], fromGroup: chosenGroup };
+  }
+  return null;
+}
+
+// ---------- SPLIT BRACKET INTO LEFT / RIGHT HALVES ----------
+// Traced from the Final backward: SF "home" feeds the LEFT half, SF "away" feeds the RIGHT half.
+// Every match that is an ancestor of SF-home's lineage is LEFT; everything feeding SF-away is RIGHT.
+function buildSideMap() {
+  const sideMap = {}; // matchId -> "left" | "right"
+
+  function idOf(code) {
+    return Number(String(code).replace("W", "").replace("L", ""));
+  }
+
+  const finalHomeSF = idOf(D.FINAL.home); // e.g. 101
+  const finalAwaySF = idOf(D.FINAL.away); // e.g. 102
+
+  function markSide(matchId, side) {
+    sideMap[matchId] = side;
+    // find this match's definition across all rounds to trace its own inputs
+    const all = [...D.SEMIFINALS, ...D.QUARTERFINALS, ...D.ROUND_OF_16, ...D.ROUND_OF_32];
+    const def = all.find((m) => m.id === matchId);
+    if (!def) return; // reached Round of 32, no further ancestors to trace
+    if (typeof def.home === "string" && def.home.startsWith("W")) markSide(idOf(def.home), side);
+    if (typeof def.away === "string" && def.away.startsWith("W")) markSide(idOf(def.away), side);
+  }
+
+  markSide(finalHomeSF, "left");
+  markSide(finalAwaySF, "right");
+
+  return sideMap;
+}
+const SIDE_MAP = buildSideMap();
+
+
+// winners[matchId] = the team object the user picked as winner of that match (or undefined)
+const winners = {};
+let allMatchesFlat = []; // built once bracket is generated: [{id, round, home, away, isFinal}]
+let bracketBuilt = false;
+
+function buildAllMatches() {
+  const usedThirdPlace = new Set();
+
+  const r32 = D.ROUND_OF_32.map((m) => ({
+    ...m,
+    round: "r32",
+    homeTeam: resolveGroupSlot(m.home, usedThirdPlace),
+    awayTeam: resolveGroupSlot(m.away, usedThirdPlace),
+  }));
+
+  // helper: get the team that WON a given match id (from r32 onward), or null if not decided yet
+  function winnerOf(matchId) {
+    return winners[matchId] || null;
+  }
+
+  const r16 = D.ROUND_OF_16.map((m) => {
+    const homeId = Number(m.home.replace("W", ""));
+    const awayId = Number(m.away.replace("W", ""));
+    return { ...m, round: "r16", homeTeam: winnerOf(homeId), awayTeam: winnerOf(awayId), homeFrom: homeId, awayFrom: awayId };
+  });
+
+  const qf = D.QUARTERFINALS.map((m) => {
+    const homeId = Number(m.home.replace("W", ""));
+    const awayId = Number(m.away.replace("W", ""));
+    return { ...m, round: "qf", homeTeam: winnerOf(homeId), awayTeam: winnerOf(awayId), homeFrom: homeId, awayFrom: awayId };
+  });
+
+  const sf = D.SEMIFINALS.map((m) => {
+    const homeId = Number(m.home.replace("W", ""));
+    const awayId = Number(m.away.replace("W", ""));
+    return { ...m, round: "sf", homeTeam: winnerOf(homeId), awayTeam: winnerOf(awayId), homeFrom: homeId, awayFrom: awayId };
+  });
+
+  const finalHomeId = Number(D.FINAL.home.replace("W", ""));
+  const finalAwayId = Number(D.FINAL.away.replace("W", ""));
+  const final = {
+    ...D.FINAL,
+    round: "final",
+    homeTeam: winnerOf(finalHomeId),
+    awayTeam: winnerOf(finalAwayId),
+    homeFrom: finalHomeId,
+    awayFrom: finalAwayId,
+    isFinal: true,
+  };
+
+  allMatchesFlat = [...r32, ...r16, ...qf, ...sf, final];
+  return { r32, r16, qf, sf, final };
+}
+
+function teamHtml(team, matchId, side) {
+  if (!team) return `<button class="match-team tbd" disabled>TBD</button>`;
+  if (team.tbd) return `<button class="match-team tbd" disabled>${team.label}</button>`;
+  const isWinner = winners[matchId] && winners[matchId].name === team.name;
+  return `<button class="match-team ${isWinner ? "is-winner" : ""}" data-match="${matchId}" data-side="${side}">
+      <img src="${flagUrl(team.flag)}" alt="" onerror="this.style.display='none'">
+      <span>${team.name}</span>
+      ${isWinner ? '<span class="winner-check">✓</span>' : ""}
+    </button>`;
+}
+
+function renderMatchCard(match) {
+  const homeReady = match.homeTeam && !match.homeTeam.tbd;
+  const awayReady = match.awayTeam && !match.awayTeam.tbd;
+  const clickable = homeReady && awayReady;
+
+  return `
+    <div class="match-card ${match.isFinal ? "final-card" : ""}" data-match-id="${match.id}">
+      <div class="match-meta"><span>M${match.id}</span><span>${match.venue}</span></div>
+      ${teamHtml(match.homeTeam, match.id, "home")}
+      <div class="match-divider"></div>
+      ${teamHtml(match.awayTeam, match.id, "away")}
+      ${!clickable ? '<div class="match-hint">Waiting for previous round</div>' : ""}
+    </div>
+  `;
+}
+
+function renderBracket() {
+  const { r32, r16, qf, sf, final } = buildAllMatches();
+  const container = document.getElementById("bracketContainer");
+
+  function side(m) {
+    return SIDE_MAP[m.id];
+  }
+
+  const leftR32 = r32.filter((m) => side(m) === "left");
+  const rightR32 = r32.filter((m) => side(m) === "right");
+  const leftR16 = r16.filter((m) => side(m) === "left");
+  const rightR16 = r16.filter((m) => side(m) === "right");
+  const leftQF = qf.filter((m) => side(m) === "left");
+  const rightQF = qf.filter((m) => side(m) === "right");
+  const leftSF = sf.filter((m) => side(m) === "left");
+  const rightSF = sf.filter((m) => side(m) === "right");
+
+  function renderColumn(label, matches) {
+    let html = `<div class="bracket-round"><div class="round-label">${label}</div>`;
+    matches.forEach((m) => (html += renderMatchCard(m)));
+    html += `</div>`;
+    return html;
+  }
+
+  // Left half goes outermost-to-innermost: R32 -> R16 -> QF -> SF
+  // Right half mirrors it: SF -> QF -> R16 -> R32
+  // Final sits in the very center.
+  let html = `<div class="bracket-vs">`;
+  html += `<div class="bracket-half bracket-half-left">`;
+  html += renderColumn("Round of 32", leftR32);
+  html += renderColumn("Round of 16", leftR16);
+  html += renderColumn("Quarter-Finals", leftQF);
+  html += renderColumn("Semi-Final", leftSF);
+  html += `</div>`;
+
+  html += `<div class="bracket-center">`;
+  html += `<div class="round-label">Final</div>`;
+  html += renderMatchCard(final);
+  html += `</div>`;
+
+  html += `<div class="bracket-half bracket-half-right">`;
+  html += renderColumn("Semi-Final", rightSF);
+  html += renderColumn("Quarter-Finals", rightQF);
+  html += renderColumn("Round of 16", rightR16);
+  html += renderColumn("Round of 32", rightR32);
+  html += `</div>`;
+  html += `</div>`;
+
+  container.innerHTML = html;
+  attachWinnerClickHandlers();
+}
+
+function attachWinnerClickHandlers() {
+  const buttons = document.querySelectorAll(".match-team[data-match]");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const matchId = Number(btn.dataset.match);
+      const side = btn.dataset.side;
+      const match = allMatchesFlat.find((m) => m.id === matchId);
+      const chosenTeam = side === "home" ? match.homeTeam : match.awayTeam;
+
+      winners[matchId] = chosenTeam;
+
+      // Clear any winners that depended on this match being someone else
+      // (cascade reset: if you change an earlier pick, later rounds referencing it reset automatically
+      // because buildAllMatches() recomputes homeTeam/awayTeam from `winners` fresh every render)
+      renderBracket();
+
+      // If this was the FINAL match, trigger celebration
+      if (match.isFinal) {
+        triggerChampionCelebration(chosenTeam);
+      }
+    });
+  });
+}
+
+// ---------- CHAMPION CELEBRATION ----------
+function triggerChampionCelebration(team) {
+  const overlay = document.createElement("div");
+  overlay.className = "champion-overlay";
+  overlay.innerHTML = `
+    <div class="confetti-layer"></div>
+    <div class="champion-modal">
+      <div class="champion-trophy">🏆</div>
+      <div class="champion-label">WORLD CHAMPION</div>
+      <img class="champion-flag" src="${flagUrl(team.flag)}" alt="${team.name}">
+      <div class="champion-name">${team.name}</div>
+      <button class="champion-close" id="closeCelebration">Close</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Generate confetti pieces
+  const confettiLayer = overlay.querySelector(".confetti-layer");
+  const colors = ["#ffb627", "#2f8a55", "#f4f7f2", "#e8553f"];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = Math.random() * 1.2 + "s";
+    piece.style.animationDuration = 2.5 + Math.random() * 1.5 + "s";
+    confettiLayer.appendChild(piece);
+  }
+
+  document.getElementById("closeCelebration").addEventListener("click", () => {
+    overlay.remove();
+  });
+}
+
+// ---------- GLOBAL TOUCH MOVE / END (drives mobile drag-reorder) ----------
+document.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!touchState) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - touchState.startY;
+    touchState.rowEl.style.transform = `translateY(${deltaY}px)`;
+
+    // Figure out how many rows we've crossed
+    const rowsMoved = Math.round(deltaY / touchState.rowHeight);
+    const groupLen = state[touchState.group].order.length;
+    let newIndex = touchState.fromIndex + rowsMoved;
+    newIndex = Math.max(0, Math.min(groupLen - 1, newIndex));
+    touchState.currentIndex = newIndex;
+  },
+  { passive: false }
+);
+
+document.addEventListener("touchend", () => {
+  if (!touchState) return;
+  const { group, fromIndex, currentIndex, rowEl } = touchState;
+  rowEl.style.transform = "";
+  rowEl.style.position = "";
+  rowEl.style.zIndex = "";
+  rowEl.classList.remove("dragging");
+  touchState = null;
+  reorderGroup(group, fromIndex, currentIndex);
+});
+
+// ---------- EVENTS ----------
+document.getElementById("scrollToGroups").addEventListener("click", () => {
+  document.getElementById("groups-section").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("buildBracketBtn").addEventListener("click", () => {
+  // Reset any previously chosen winners since group order may have changed
+  for (const k in winners) delete winners[k];
+  bracketBuilt = true;
+  renderBracket();
+  const bracketSection = document.getElementById("bracket-section");
+  bracketSection.classList.add("visible");
+  bracketSection.scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  document.getElementById("bracket-section").classList.remove("visible");
+  document.getElementById("groups-section").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("shareBtn").addEventListener("click", () => {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: "My World Cup 2026 Bracket Path", url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById("shareBtn");
+      const original = btn.textContent;
+      btn.textContent = "✓ Link copied!";
+      setTimeout(() => (btn.textContent = original), 2000);
+    });
+  }
+});
+
+// ---------- INIT ----------
+renderGroups();
