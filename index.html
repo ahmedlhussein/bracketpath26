@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bracket Path 2026 — Build Your World Cup Knockout Road</title>
+<meta name="description" content="Set the live group standings, lock in the 8 qualifying third-place teams, and watch the entire World Cup 2026 knockout bracket build itself — Round of 32 through the Final." />
+
+<!-- Open Graph for sharing -->
+<meta property="og:title" content="Bracket Path 2026" />
+<meta property="og:description" content="Build the full World Cup 2026 knockout bracket from the current group standings." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">⚽</span>
+      <span class="brand-text">BRACKET<span class="brand-accent">PATH</span><span class="brand-year">26</span></span>
+    </div>
+    <div class="topbar-status">
+      <span class="pulse-dot"></span>
+      Group Stage Live — Standings updated Jun 17
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">FIFA WORLD CUP 26 · KNOCKOUT BRACKET BUILDER</p>
+    <h1 class="hero-title">Your road to the<br><span class="hero-title-accent">Final</span> starts here.</h1>
+    <p class="hero-sub">The group stage is underway. Lock in who finishes 3rd and qualifies — then watch all 16 Round-of-32 matchups assemble themselves, all the way to match 104.</p>
+    <button class="btn-primary" id="scrollToGroups">Set the standings ↓</button>
+  </div>
+  <div class="hero-pitch-lines" aria-hidden="true"></div>
+</section>
+
+<!-- ============ PART 1: GROUPS ============ -->
+<section class="section" id="groups-section">
+  <div class="section-head">
+    <span class="section-num">01</span>
+    <div>
+      <h2 class="section-title">Confirm the standings</h2>
+      <p class="section-desc">Live order is pre-loaded for every group. Drag to reorder if a result changes, then decide whether each 3rd-place team survives.</p>
+    </div>
+  </div>
+
+  <div class="groups-grid" id="groupsGrid">
+    <!-- injected by app.js -->
+  </div>
+
+  <div class="third-place-banner" id="thirdPlaceBanner">
+    <div class="tpb-icon">8</div>
+    <div class="tpb-text">
+      <strong>Best Third-Place Teams</strong>
+      <span id="tpbCount">0 of 8 marked as qualified</span>
+    </div>
+  </div>
+
+  <button class="btn-build" id="buildBracketBtn" disabled>
+    Build the knockout bracket →
+  </button>
+</section>
+
+<!-- ============ PART 2: BRACKET ============ -->
+<section class="section bracket-section" id="bracket-section">
+  <div class="section-head">
+    <span class="section-num">02</span>
+    <div>
+      <h2 class="section-title">The knockout road</h2>
+      <p class="section-desc">Round of 32 → Round of 16 → Quarter-finals → Semi-finals → Final.</p>
+    </div>
+  </div>
+
+  <div class="bracket-controls">
+    <button class="btn-share" id="shareBtn">📤 Share my bracket</button>
+    <button class="btn-reset" id="resetBtn">↺ Edit standings</button>
+  </div>
+
+  <div class="bracket-scroll" id="bracketContainer">
+    <!-- injected by app.js -->
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Built for fans, by a fan. Not affiliated with FIFA. Standings are user-editable and for entertainment purposes.</p>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
