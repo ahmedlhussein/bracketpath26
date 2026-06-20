@@ -336,18 +336,27 @@ body {
   color: var(--chalk-dim);
   margin-bottom: 14px;
 }
+.conflict-banner {
+  background: rgba(232, 85, 63, 0.12);
+  border: 1px solid var(--danger);
+  color: var(--chalk);
+  font-size: 0.85rem;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
 
 .bracket-vs {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   min-width: max-content;
   padding: 10px 4px;
 }
 
 .bracket-half {
   display: flex;
-  gap: 14px;
+  gap: 5px;
 }
 
 .bracket-center {
@@ -355,57 +364,52 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 0 4px;
+  padding: 0 2px;
   align-self: center;
 }
-.bracket-center .match-card { min-width: 170px; }
+.bracket-center .match-card { min-width: 130px; }
 
-.bracket-round { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-width: 175px; }
+.bracket-round { display: flex; flex-direction: column; justify-content: center; gap: 8px; min-width: 130px; }
 .round-label {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.6rem;
   color: var(--amber);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .match-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 7px;
-  padding: 7px 8px;
-  font-size: 0.78rem;
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-size: 0.74rem;
 }
 .match-meta {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   color: var(--chalk-dim);
-  margin-bottom: 4px;
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  overflow: hidden;
+  margin-bottom: 2px;
 }
-.match-meta span:last-child { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 .match-team {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 5px;
+  gap: 5px;
+  padding: 4px 4px;
   width: 100%;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--chalk);
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.73rem;
   cursor: pointer;
   text-align: left;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .match-team:not(:disabled):hover { background: rgba(244,247,242,0.06); border-color: var(--card-border); }
-.match-team img { width: 18px; height: 13px; object-fit: cover; border-radius: 2px; flex-shrink: 0; }
+.match-team img { width: 16px; height: 12px; object-fit: cover; border-radius: 2px; flex-shrink: 0; }
 .match-team span:first-of-type { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .match-team.tbd { color: var(--chalk-dim); font-style: italic; cursor: default; }
 .match-team.is-winner {
