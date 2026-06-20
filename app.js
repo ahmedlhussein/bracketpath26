@@ -143,9 +143,38 @@ function updateThirdPlaceBanner() {
   buildBtn.disabled = qualifiedCount !== 8;
 }
 
+// ---------- THIRD-PLACE ASSIGNMENT (correct bipartite matching via backtracking) ----------
+// The naive "first match wins" greedy approach can fail to find a valid assignment
+// even when one exists (a group needed by an earlier slot might be the ONLY option
+// for a later slot). We solve this properly with backtracking.
+function solveThirdPlaceAssignment(qualifiedGroups) {
+  const matchIds = Object.keys(D.THIRD_PLACE_POOLS).map(Number);
+  const assignment = {}; // matchId -> group number
+  const usedGroups = new Set();
+
+  function backtrack(index) {
+    if (index === matchIds.length) return true;
+    const matchId = matchIds[index];
+    const candidates = D.THIRD_PLACE_POOLS[matchId].filter(
+      (g) => qualifiedGroups.includes(g) && !usedGroups.has(g)
+    );
+    for (const group of candidates) {
+      usedGroups.add(group);
+      assignment[matchId] = group;
+      if (backtrack(index + 1)) return true;
+      usedGroups.delete(group);
+      delete assignment[matchId];
+    }
+    return false;
+  }
+
+  const solved = backtrack(0);
+  return { solved, assignment };
+}
+
 // ---------- RESOLVE GROUP-STAGE SLOT CODES INTO TEAM OBJECTS ----------
 // (only resolves "1st-N" / "2nd-N" / "3rd-{matchId}" — i.e. Round of 32 inputs)
-function resolveGroupSlot(code, usedThirdPlaceTracker) {
+function resolveGroupSlot(code, thirdPlaceAssignment) {
   let m = code.match(/^1st-(\d+)$/);
   if (m) return state[m[1]].order[0];
   m = code.match(/^2nd-(\d+)$/);
@@ -154,12 +183,8 @@ function resolveGroupSlot(code, usedThirdPlaceTracker) {
   m = code.match(/^3rd-(\d+)$/);
   if (m) {
     const matchId = Number(m[1]);
-    const pool = D.THIRD_PLACE_POOLS[matchId];
-    const qualifiedInPool = pool.filter((g) => state[g].thirdStatus === "qualified");
-    const available = qualifiedInPool.filter((g) => !usedThirdPlaceTracker.has(g));
-    if (available.length === 0) return null;
-    const chosenGroup = available[0];
-    usedThirdPlaceTracker.add(chosenGroup);
+    const chosenGroup = thirdPlaceAssignment[matchId];
+    if (chosenGroup === undefined) return null;
     return { ...state[chosenGroup].order[2], fromGroup: chosenGroup };
   }
   return null;
@@ -202,13 +227,25 @@ let allMatchesFlat = []; // built once bracket is generated: [{id, round, home, 
 let bracketBuilt = false;
 
 function buildAllMatches() {
-  const usedThirdPlace = new Set();
+  const qualifiedGroups = Object.keys(state)
+    .filter((g) => state[g].thirdStatus === "qualified")
+    .map(Number);
+
+  const { solved, assignment } = solveThirdPlaceAssignment(qualifiedGroups);
+
+  if (!solved) {
+    // Should not happen with exactly 8 valid qualifiers per FIFA's real pools,
+    // but guard against it instead of silently leaving slots empty.
+    showThirdPlaceWarning();
+  } else {
+    hideThirdPlaceWarning();
+  }
 
   const r32 = D.ROUND_OF_32.map((m) => ({
     ...m,
     round: "r32",
-    homeTeam: resolveGroupSlot(m.home, usedThirdPlace),
-    awayTeam: resolveGroupSlot(m.away, usedThirdPlace),
+    homeTeam: resolveGroupSlot(m.home, assignment),
+    awayTeam: resolveGroupSlot(m.away, assignment),
   }));
 
   // helper: get the team that WON a given match id (from r32 onward), or null if not decided yet
@@ -250,6 +287,22 @@ function buildAllMatches() {
   return { r32, r16, qf, sf, final };
 }
 
+function showThirdPlaceWarning() {
+  let banner = document.getElementById("thirdPlaceConflict");
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "thirdPlaceConflict";
+    banner.className = "conflict-banner";
+    banner.textContent =
+      "⚠️ This combination of 3rd-place qualifiers has no valid FIFA-rule assignment. Go back and adjust your 3rd-place picks.";
+    document.getElementById("bracketContainer").before(banner);
+  }
+}
+function hideThirdPlaceWarning() {
+  const banner = document.getElementById("thirdPlaceConflict");
+  if (banner) banner.remove();
+}
+
 function teamHtml(team, matchId, side) {
   if (!team) return `<button class="match-team tbd" disabled>TBD</button>`;
   if (team.tbd) return `<button class="match-team tbd" disabled>${team.label}</button>`;
@@ -268,7 +321,7 @@ function renderMatchCard(match) {
 
   return `
     <div class="match-card ${match.isFinal ? "final-card" : ""}" data-match-id="${match.id}">
-      <div class="match-meta"><span>M${match.id}</span><span>${match.venue}</span></div>
+      <div class="match-meta"><span>M${match.id}</span></div>
       ${teamHtml(match.homeTeam, match.id, "home")}
       <div class="match-divider"></div>
       ${teamHtml(match.awayTeam, match.id, "away")}
