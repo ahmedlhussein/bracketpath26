@@ -143,21 +143,37 @@ function updateThirdPlaceBanner() {
   buildBtn.disabled = qualifiedCount !== 8;
 }
 
-// ---------- THIRD-PLACE ASSIGNMENT (correct bipartite matching via backtracking) ----------
-// The naive "first match wins" greedy approach can fail to find a valid assignment
-// even when one exists (a group needed by an earlier slot might be the ONLY option
-// for a later slot). We solve this properly with backtracking.
+// ---------- THIRD-PLACE ASSIGNMENT ----------
+// Rule requested: process the 8 "group winner vs 3rd place" slots in ascending order
+// of the FACING group winner's number (1, 2, 4, 5, 7, 9, 11, 12 — not the official
+// match number order 74,77,79,80,81,82,85,87). Each slot takes the SMALLEST available
+// group number from its own eligible pool. Backtracking is kept as a safety net so a
+// valid full assignment is still always found even in edge cases where greedy-by-smallest
+// would otherwise leave a slot unfillable.
+function getFacingWinnerGroup(matchId) {
+  // The Round of 32 match definition's "home" side is the group winner (e.g. "1st-4")
+  const def = D.ROUND_OF_32.find((m) => m.id === matchId);
+  const m = def.home.match(/^1st-(\d+)$/);
+  return Number(m[1]);
+}
+
 function solveThirdPlaceAssignment(qualifiedGroups) {
-  const matchIds = Object.keys(D.THIRD_PLACE_POOLS).map(Number);
-  const assignment = {}; // matchId -> group number
+  // Order match slots by the facing group-winner's number, ascending
+  const matchIds = Object.keys(D.THIRD_PLACE_POOLS)
+    .map(Number)
+    .sort((a, b) => getFacingWinnerGroup(a) - getFacingWinnerGroup(b));
+
+  const assignment = {};
   const usedGroups = new Set();
 
   function backtrack(index) {
     if (index === matchIds.length) return true;
     const matchId = matchIds[index];
-    const candidates = D.THIRD_PLACE_POOLS[matchId].filter(
-      (g) => qualifiedGroups.includes(g) && !usedGroups.has(g)
-    );
+    // Within each slot, try candidates smallest-group-number first (the requested rule),
+    // falling back to the next smallest only if smallest leads to a dead end later on.
+    const candidates = D.THIRD_PLACE_POOLS[matchId]
+      .filter((g) => qualifiedGroups.includes(g) && !usedGroups.has(g))
+      .sort((a, b) => a - b);
     for (const group of candidates) {
       usedGroups.add(group);
       assignment[matchId] = group;
